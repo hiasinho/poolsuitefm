@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import qs.Commons
 import qs.Ui
 
@@ -7,7 +8,6 @@ BarWidget {
   moduleName: "io.github.hiasinho.poolsuitefm"
 
   readonly property var player: bar && bar.shell ? bar.shell.serviceFor(moduleName) : null
-  readonly property bool showTrack: setting("showTrack", true) === true
   property bool panelOpen: false
   property bool popoutSwitchClosing: false
 
@@ -49,27 +49,51 @@ BarWidget {
     bar: root.bar
     active: root.player && root.player.playing
     dimmed: !root.player || !root.player.running
-    text: {
-      var sun = root.player && root.player.playing ? "☀" : "☼"
-      if (!root.showTrack || root.vertical || !root.player || !root.player.running) return sun
-      var track = root.player.title || root.stationName(root.player.station)
-      return sun + "  " + track
+    text: ""
+    labelVisible: false
+    hasVisualContent: true
+    fixedWidth: root.vertical ? barSize : Style.space(14) + scaledHorizontalMargin * 2
+
+    Item {
+      width: Style.space(14)
+      height: Style.space(14)
+      anchors.centerIn: parent
+
+      Image {
+        id: palmIcon
+        anchors.fill: parent
+        source: Qt.resolvedUrl("assets/favicon.png")
+        sourceSize.width: Math.round(width * Screen.devicePixelRatio)
+        sourceSize.height: Math.round(height * Screen.devicePixelRatio)
+        fillMode: Image.PreserveAspectFit
+        smooth: false
+        visible: false
+        layer.enabled: true
+      }
+
+      MultiEffect {
+        anchors.fill: palmIcon
+        source: palmIcon
+        colorization: 1.0
+        colorizationColor: button.active && button.useActiveColor ? button.activeColor : button.foreground
+      }
     }
+
     tooltipText: root.player && root.player.running
       ? (root.player.artist ? root.player.artist + " — " : "") + (root.player.title || root.stationName(root.player.station))
       : "Poolsuite FM"
 
     onPressed: function(code) {
       if (code === Qt.MiddleButton) {
-        if (root.player) root.player.next()
+        if (root.player && !root.player.busy) root.player.next()
       } else if (code === Qt.RightButton) {
-        if (root.player) root.player.toggle()
+        if (root.player && !root.player.busy) root.player.toggle()
       } else {
         root.panelOpen = !root.panelOpen
       }
     }
     onWheelMoved: function(delta) {
-      if (!root.player) return
+      if (!root.player || root.player.busy) return
       if (delta > 0) root.player.previous()
       else root.player.next()
     }
@@ -88,28 +112,70 @@ BarWidget {
       width: parent ? parent.width : 0
       spacing: Style.space(12)
 
-      Column {
+      Row {
         width: parent.width
-        spacing: Style.space(3)
+        spacing: Style.space(10)
 
-        Text {
-          width: parent.width
-          text: root.player && root.player.title ? root.player.title : "Poolsuite FM"
-          color: Color.popups.text
-          font.family: Style.font.family
-          font.pixelSize: Style.font.subtitle
-          font.bold: true
-          elide: Text.ElideRight
+        BorderSurface {
+          width: Style.space(64)
+          height: Style.space(64)
+          radius: Style.spacing.labelGap
+          color: Style.normalFillFor(Color.popups.text, Color.accent)
+          borderSpec: Border.controlSpec("normal", Color.popups.text, Color.accent)
+
+          Image {
+            id: coverArt
+            anchors.fill: parent
+            anchors.margins: Style.space(2)
+            source: root.player ? root.player.artUrl : ""
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            visible: status === Image.Ready
+          }
+
+          Image {
+            id: fallbackIcon
+            anchors.centerIn: parent
+            width: Style.space(28)
+            height: Style.space(28)
+            source: Qt.resolvedUrl("assets/favicon.png")
+            visible: false
+            layer.enabled: true
+          }
+
+          MultiEffect {
+            anchors.fill: fallbackIcon
+            source: fallbackIcon
+            colorization: 1.0
+            colorizationColor: Color.popups.text
+            visible: coverArt.status !== Image.Ready
+          }
         }
-        Text {
-          width: parent.width
-          text: root.player && root.player.artist
-            ? root.player.artist
-            : root.stationName(root.player ? root.player.station : "official")
-          color: Qt.darker(Color.popups.text, 1.4)
-          font.family: Style.font.family
-          font.pixelSize: Style.font.bodySmall
-          elide: Text.ElideRight
+
+        Column {
+          width: parent.width - Style.space(74)
+          spacing: Style.space(3)
+          anchors.verticalCenter: parent.verticalCenter
+
+          Text {
+            width: parent.width
+            text: root.player && root.player.title ? root.player.title : "Poolsuite FM"
+            color: Color.popups.text
+            font.family: Style.font.family
+            font.pixelSize: Style.font.subtitle
+            font.bold: true
+            elide: Text.ElideRight
+          }
+          Text {
+            width: parent.width
+            text: root.player && root.player.artist
+              ? root.player.artist
+              : root.stationName(root.player ? root.player.station : "official")
+            color: Qt.darker(Color.popups.text, 1.4)
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+            elide: Text.ElideRight
+          }
         }
       }
 
@@ -120,25 +186,26 @@ BarWidget {
         Button {
           iconText: "󰒮"
           foreground: Color.popups.text
-          enabled: root.player && root.player.running
+          enabled: root.player && root.player.running && !root.player.busy
           onClicked: root.player.previous()
         }
         Button {
           iconText: root.player && root.player.playing ? "󰏤" : "󰐊"
           foreground: Color.popups.text
+          enabled: root.player && !root.player.busy
           onClicked: root.player.toggle()
         }
         Button {
           iconText: "󰒭"
           foreground: Color.popups.text
-          enabled: root.player && root.player.running
+          enabled: root.player && root.player.running && !root.player.busy
           onClicked: root.player.next()
         }
         Button {
           iconText: "󰓛"
           tooltipText: "Stop"
           foreground: Color.popups.text
-          enabled: root.player && root.player.running
+          enabled: root.player && root.player.running && !root.player.busy
           onClicked: root.player.stop()
         }
       }
@@ -156,6 +223,7 @@ BarWidget {
         PanelSlider {
           width: parent.width - Style.space(34)
           bar: root.bar
+          enabled: root.player && !root.player.busy
           minimum: 0
           maximum: 100
           value: root.player ? root.player.volume : 70
@@ -187,6 +255,7 @@ BarWidget {
             leftAlign: true
             foreground: Color.popups.text
             selected: root.player && root.player.station === modelData.key
+            enabled: root.player && !root.player.busy
             onClicked: root.player.playStation(modelData.key)
           }
         }
@@ -194,11 +263,12 @@ BarWidget {
 
       Text {
         width: parent.width
-        text: "Unofficial player · public Poolsuite SoundCloud playlists"
+        text: "Unofficial player\nPublic Poolsuite SoundCloud playlists"
         color: Qt.darker(Color.popups.text, 1.6)
         font.family: Style.font.family
-        font.pixelSize: Style.font.caption
+        font.pixelSize: Math.max(8, Style.font.caption - 2)
         horizontalAlignment: Text.AlignHCenter
+        wrapMode: Text.WordWrap
       }
     }
   }
