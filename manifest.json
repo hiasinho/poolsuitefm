@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.hiasinho.poolsuitefm",
+  "name": "Poolsuite FM",
+  "version": "0.1.0",
+  "author": "Mathias Maisberger",
+  "license": "MIT",
+  "description": "A tiny, browser-free Poolsuite player for the Omarchy bar.",
+  "kinds": ["service", "bar-widget"],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Poolsuite FM",
+    "description": "Play Poolsuite's public SoundCloud playlists with mpv.",
+    "category": "Media",
+    "allowMultiple": false,
+    "defaultSection": "center",
+    "defaults": {
+      "shuffle": true,
+      "showTrack": true
+    },
+    "schema": [
+      {
+        "key": "shuffle",
+        "type": "boolean",
+        "label": "Shuffle playlists",
+        "defaultValue": true
+      },
+      {
+        "key": "showTrack",
+        "type": "boolean",
+        "label": "Show track in bar",
+        "defaultValue": true
+      }
+    ]
+  }
+}
