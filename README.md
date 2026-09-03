@@ -41,13 +41,16 @@ No browser is required or quietly opened behind your cabana.
 omarchy plugin add https://github.com/hiasinho/poolsuitefm --enable
 ```
 
-For local development, place the repository in `~/Work/poolsuitefm`, link it
-into the Omarchy plugin directory, and enable it in the bar:
+## Configure Your Cabana
+
+Poolsuite FM checks you into the right side of the bar by default. Relocate
+the listening lounge whenever the view calls for it:
 
 ```bash
-ln -s ~/Work/poolsuitefm ~/.config/omarchy/plugins/io.github.hiasinho.poolsuitefm
-omarchy plugin enable io.github.hiasinho.poolsuitefm --section right
+omarchy bar move io.github.hiasinho.poolsuitefm --section right
 ```
+
+Shuffle is available in the plugin settings and enabled by default.
 
 ## Operating Instructions
 
@@ -57,7 +60,7 @@ omarchy plugin enable io.github.hiasinho.poolsuitefm --section right
 - **Scroll:** move through the playlist
 
 Inside the lounge you may select a channel, inspect the current record sleeve,
-adjust the listening volume, or conclude the broadcast entirely.
+or conclude the broadcast entirely.
 
 ## The Leisure-Enhancing Approach
 
@@ -72,5 +75,13 @@ Poolsuite FM is an independent, unofficial player. It is not affiliated with
 Poolsuite or SoundCloud. Music is streamed from public playlists curated by
 Poolsuite; availability remains subject to the gracious hospitality of those
 services.
+
+## Check Out
+
+When the season ends, return your room key at the front desk:
+
+```bash
+omarchy plugin remove io.github.hiasinho.poolsuitefm
+```
 
 _For true connoisseurs of desktop leisure._
