@@ -90,7 +90,7 @@ Panel {
               anchors.centerIn: parent
               width: Style.space(34)
               height: Style.space(34)
-              source: Qt.resolvedUrl("assets/favicon.png")
+              source: Qt.resolvedUrl("assets/icon.svg")
               visible: false
               layer.enabled: true
             }

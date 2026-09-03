@@ -13,7 +13,7 @@ channel, lower your chair into the preferred reclining position, and allow
 
 This compact broadcasting instrument pairs Poolsuite’s public SoundCloud
 playlists with a native Quickshell panel. Track details, original cover art,
-channel selection, volume, and transport controls remain tastefully concealed
+channel selection, and transport controls remain tastefully concealed
 behind one small palm tree.
 
 Eight professionally leisure-oriented departments are available:
@@ -75,6 +75,9 @@ Poolsuite FM is an independent, unofficial player. It is not affiliated with
 Poolsuite or SoundCloud. Music is streamed from public playlists curated by
 Poolsuite; availability remains subject to the gracious hospitality of those
 services.
+
+The palm-tree symbol is by [DarkEvil](https://commons.wikimedia.org/wiki/File:Palm_tree_symbol.svg)
+and is in the public domain.
 
 ## Check Out
 

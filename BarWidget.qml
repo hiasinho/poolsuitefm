@@ -99,7 +99,7 @@ BarWidget {
       Image {
         id: palmIcon
         anchors.fill: parent
-        source: Qt.resolvedUrl("assets/favicon.png")
+        source: Qt.resolvedUrl("assets/icon.svg")
         sourceSize.width: Math.round(width * Screen.devicePixelRatio)
         sourceSize.height: Math.round(height * Screen.devicePixelRatio)
         fillMode: Image.PreserveAspectFit
