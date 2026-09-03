@@ -97,8 +97,8 @@ def status():
         return
 
     metadata = values.get("metadata") or {}
-    title = metadata.get("Title") or metadata.get("TITLE") or values.get("media-title") or ""
-    artist = metadata.get("Artist") or metadata.get("ARTIST") or metadata.get("Uploader") or ""
+    title = metadata.get("title") or metadata.get("Title") or metadata.get("TITLE") or values.get("media-title") or ""
+    artist = metadata.get("artist") or metadata.get("Artist") or metadata.get("ARTIST") or metadata.get("uploader") or ""
     print(json.dumps({
         "running": True,
         "playing": not bool(values.get("pause")),
