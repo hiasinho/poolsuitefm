@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.hiasinho.poolsuitefm",
   "name": "Poolsuite FM",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "author": "Mathias Maisberger",
   "license": "MIT",
   "description": "A tiny, browser-free Poolsuite player for the Omarchy bar.",
