@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell.Io
+import "Safety.js" as Safety
 
 Item {
   id: root
@@ -47,11 +48,13 @@ Item {
   }
 
   function requestArtwork(value) {
+    value = Safety.sourceUrl(value)
     if (!value) {
       artUrl = ""
       pendingArtSource = ""
       return
     }
+    if (helper === "/scripts/player.py") return
     if (artProcess.running) {
       pendingArtSource = value
       return
@@ -62,10 +65,11 @@ Item {
   }
 
   function applyArtwork(text) {
-    try {
-      var data = JSON.parse(String(text || "{}"))
-      if (source === String(data.source || "")) artUrl = String(data.url || "")
-    } catch (error) {}
+    var data = Safety.parseObject(text)
+    if (!data) return
+    var nextSource = Safety.sourceUrl(data.source)
+    if (nextSource !== "" && nextSource === source && nextSource === artRequestSource)
+      artUrl = Safety.artworkUrl(data.url)
   }
 
   function playStation(name) { run(["start", name, String(volume)].concat(shuffle ? ["--shuffle"] : [])) }
@@ -74,32 +78,28 @@ Item {
   function previous() { if (running) run(["previous"]) }
   function stop() { if (running) run(["stop"]) }
   function setVolume(value) {
-    volume = Math.round(value)
+    volume = Safety.boundedNumber(value, 100, volume)
     if (running) run(["volume", String(volume)])
   }
 
   function applyStatus(text) {
     if (statusGeneration !== actionGeneration) return
-    try {
-      var data = JSON.parse(String(text || "{}"))
-      running = data.running === true
-      playing = data.playing === true
-      station = String(data.station || station)
-      title = String(data.title || "")
-      artist = String(data.artist || "")
-      volume = Number(data.volume === undefined ? volume : data.volume)
-      position = Number(data.position || 0)
-      duration = Number(data.duration || 0)
+    var data = Safety.parseObject(text)
+    if (!data || typeof data.running !== "boolean") data = { running: false }
+    running = data.running === true
+    playing = running && data.playing === true
+    station = Safety.station(data.station, station)
+    title = running ? Safety.displayText(data.title) : ""
+    artist = running ? Safety.displayText(data.artist) : ""
+    if (running) volume = Safety.boundedNumber(data.volume, 100, volume)
+    position = running ? Safety.boundedNumber(data.position, Safety.timeLimit) : 0
+    duration = running ? Safety.boundedNumber(data.duration, Safety.timeLimit) : 0
 
-      var nextSource = String(data.source || "")
-      if (nextSource !== source) {
-        source = nextSource
-        artUrl = ""
-        requestArtwork(source)
-      }
-    } catch (error) {
-      running = false
-      playing = false
+    var nextSource = running ? Safety.sourceUrl(data.source) : ""
+    if (nextSource !== source) {
+      source = nextSource
+      artUrl = ""
+      requestArtwork(source)
     }
   }
 
@@ -120,6 +120,7 @@ Item {
 
   Process {
     id: statusProcess
+    // The helper caps the complete ASCII JSON document at 16 KiB before writing.
     stdout: StdioCollector {
       id: statusOutput
       waitForEnd: true
@@ -143,6 +144,7 @@ Item {
 
   Process {
     id: artProcess
+    // Both source and URL are bounded by the helper before collection.
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: root.applyArtwork(text)

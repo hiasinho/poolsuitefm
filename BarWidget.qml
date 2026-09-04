@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Effects
 import qs.Commons
 import qs.Ui
+import "Safety.js" as Safety
 
 BarWidget {
   id: root
@@ -116,10 +117,10 @@ BarWidget {
       }
     }
 
-    tooltipText: root.player && root.player.running
+    tooltipText: Safety.tooltip(root.player && root.player.running
       ? (root.player.artist ? root.player.artist + " — " : "")
         + (root.player.title || root.stationName(root.player.station))
-      : "Poolsuite FM"
+      : "Poolsuite FM")
 
     onPressed: function(code) {
       if (code === Qt.MiddleButton) {

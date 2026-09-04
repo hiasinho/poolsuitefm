@@ -112,6 +112,7 @@ Panel {
             Text {
               width: parent.width
               text: root.player && root.player.title ? root.player.title : "Poolsuite FM"
+              textFormat: Text.PlainText
               color: Color.popups.text
               font.family: Style.font.family
               font.pixelSize: Style.font.subtitle
@@ -121,6 +122,7 @@ Panel {
 
             Text {
               width: parent.width
+              textFormat: Text.PlainText
               text: root.player && root.player.artist
                 ? root.player.artist
                 : root.stationName(root.player ? root.player.station : "official")
@@ -185,6 +187,7 @@ Panel {
 
         Text {
           text: "CHANNELS"
+          textFormat: Text.PlainText
           color: Qt.darker(Color.popups.text, 1.4)
           font.family: Style.font.family
           font.pixelSize: Style.font.caption
@@ -215,6 +218,7 @@ Panel {
         Text {
           width: parent.width
           text: "Unofficial player\nPublic Poolsuite SoundCloud playlists"
+          textFormat: Text.PlainText
           color: Qt.darker(Color.popups.text, 1.6)
           font.family: Style.font.family
           font.pixelSize: Math.max(8, Style.font.caption - 2)
