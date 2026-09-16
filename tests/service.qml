@@ -3,7 +3,7 @@ import Quickshell
 import "plugin" as Poolsuite
 
 // test_service.py copies this into an isolated Quickshell configuration.
-// No manifest is assigned, so the service cannot launch helpers or touch playback.
+// Its relative helper path points inside that temporary copy, where no helper exists.
 ShellRoot {
   id: root
   property int checks: 0
@@ -25,11 +25,23 @@ ShellRoot {
   }
 
   function runTests() {
+    check(player.helper.indexOf("file://") !== 0 && player.helper.endsWith("/plugin/scripts/player.py"),
+          "helper path resolves from the service source without private manifest fields")
     status()
     check(player.running && player.playing, "valid playback state")
     check(player.title === "Title" && player.artist === "Artist", "valid metadata")
     check(player.source === track && player.station === "tokyo", "valid source and station")
     check(player.volume === 42 && player.position === 10 && player.duration === 120, "valid numbers")
+
+    player.applyActionResult(1, "start", "network failed\nretry")
+    check(player.errorMessage === "Could not start playback: network failed retry", "action error includes safe detail")
+    player.applyActionResult(1, "next", "x".repeat(1000))
+    check(player.errorMessage.indexOf("Could not skip to the next track: ") === 0 && player.errorMessage.length < 220,
+          "action error is labelled and bounded")
+    player.applyActionResult(1, "unknown", "")
+    check(player.errorMessage === "Playback command failed", "action error has generic fallback")
+    player.applyActionResult(0, "start", "ignored")
+    check(player.errorMessage === "", "successful action clears error")
 
     status({ title: "<b>Title</b>\n\u202e end", artist: "x".repeat(1000), volume: "100", position: -1, duration: 1e20 })
     check(player.title === "<b>Title</b> end" && player.artist.length === 256, "bounded display text")
@@ -62,6 +74,7 @@ ShellRoot {
     status({ running: false })
     check(!player.running && !player.playing && player.title === "" && player.artist === "", "stopped status clears metadata")
     check(player.source === "" && player.artUrl === "" && player.volume === 42, "stopped status clears artwork and preserves volume")
+    check(player.errorMessage === "Playback stopped unexpectedly", "unexpected player exit is surfaced")
 
     var invalid = ["broken", "[]", "null", "{}", '{"running":"yes"}', " ".repeat(16385)]
     for (var i = 0; i < invalid.length; i++) {

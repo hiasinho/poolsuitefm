@@ -31,10 +31,16 @@ Eight professionally leisure-oriented departments are available:
 
 - [Omarchy](https://omarchy.org/)
 - `mpv`
-- `yt-dlp`
+- `yt-dlp` with its `curl_cffi` browser-impersonation support
 - Python 3 (included with Omarchy)
 
-No browser is required or quietly opened behind your cabana.
+SoundCloud rejects plain HTTP clients with a 403 response. Install the enhanced
+`yt-dlp` build before checking in; this supplies a current browser fingerprint
+without opening a browser:
+
+```bash
+uv tool install --force --with curl-cffi yt-dlp
+```
 
 ## Installation
 

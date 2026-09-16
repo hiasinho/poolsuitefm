@@ -7,11 +7,16 @@ Item {
   visible: false
 
   property var manifest: null
-  readonly property string pluginDir: manifest && manifest.__sourceDir ? String(manifest.__sourceDir) : ""
-  readonly property string helper: pluginDir + "/scripts/player.py"
+  readonly property string helper: {
+    var value = String(Qt.resolvedUrl("scripts/player.py"))
+    if (value.indexOf("file://") === 0) value = decodeURIComponent(value.slice(7))
+    return value
+  }
+  readonly property bool ready: manifest !== null && helper !== ""
 
   property bool running: false
   property bool playing: false
+  property bool playbackExpected: false
   property string station: "official"
   property string title: ""
   property string artist: ""
@@ -20,6 +25,9 @@ Item {
   property string artRequestSource: ""
   property string pendingArtSource: ""
   property string activeAction: ""
+  property bool actionStarted: false
+  property string actionErrorOutput: ""
+  property string errorMessage: ""
   property int actionGeneration: 0
   property int statusGeneration: 0
   property int volume: 70
@@ -33,16 +41,40 @@ Item {
   }
 
   function refresh() {
-    if (helper === "/scripts/player.py" || statusProcess.running || busy) return
+    if (!ready || statusProcess.running || busy) return
     statusGeneration = actionGeneration
     statusProcess.command = [helper, "status"]
     statusProcess.running = true
   }
 
+  function actionFailureLabel(action) {
+    if (action === "start") return "Could not start playback"
+    if (action === "toggle") return "Could not change playback"
+    if (action === "next") return "Could not skip to the next track"
+    if (action === "previous") return "Could not return to the previous track"
+    if (action === "volume") return "Could not change the volume"
+    if (action === "stop") return "Could not stop playback"
+    return "Playback command failed"
+  }
+
+  function applyActionResult(exitCode, action, stderr) {
+    if (exitCode === 0) {
+      errorMessage = ""
+      return
+    }
+    var label = actionFailureLabel(action)
+    var detail = Safety.displayText(String(stderr || ""), 180)
+    errorMessage = detail ? label + ": " + detail : label
+    console.warn("Poolsuite FM: " + errorMessage)
+  }
+
   function run(args) {
-    if (helper === "/scripts/player.py" || busy) return
+    if (!ready || busy) return
     actionGeneration += 1
     activeAction = String(args[0] || "")
+    actionStarted = false
+    actionErrorOutput = ""
+    errorMessage = ""
     actionProcess.command = [helper].concat(args)
     actionProcess.running = true
   }
@@ -54,7 +86,7 @@ Item {
       pendingArtSource = ""
       return
     }
-    if (helper === "/scripts/player.py") return
+    if (!ready) return
     if (artProcess.running) {
       pendingArtSource = value
       return
@@ -86,7 +118,13 @@ Item {
     if (statusGeneration !== actionGeneration) return
     var data = Safety.parseObject(text)
     if (!data || typeof data.running !== "boolean") data = { running: false }
-    running = data.running === true
+    var nextRunning = data.running === true
+    if (!nextRunning && playbackExpected && errorMessage === "") {
+      errorMessage = "Playback stopped unexpectedly"
+      console.warn("Poolsuite FM: " + errorMessage)
+    }
+    playbackExpected = nextRunning
+    running = nextRunning
     playing = running && data.playing === true
     station = Safety.station(data.station, station)
     title = running ? Safety.displayText(data.title) : ""
@@ -130,13 +168,33 @@ Item {
 
   Process {
     id: actionProcess
+    stderr: StdioCollector {
+      id: actionError
+      waitForEnd: true
+      onStreamFinished: root.actionErrorOutput = text
+    }
+    onStarted: root.actionStarted = true
+    onRunningChanged: {
+      if (!running && root.activeAction !== "" && !root.actionStarted) {
+        var failedAction = root.activeAction
+        root.activeAction = ""
+        root.applyActionResult(1, failedAction, "The playback helper could not be launched")
+        settleTimer.restart()
+      }
+    }
     onExited: function(exitCode) {
       var completedAction = root.activeAction
+      var stderr = String(actionError.text || root.actionErrorOutput || "")
       root.activeAction = ""
-      if (exitCode === 0 && completedAction === "start") root.running = true
+      root.applyActionResult(exitCode, completedAction, stderr)
+      if (exitCode === 0 && completedAction === "start") {
+        root.running = true
+        root.playbackExpected = true
+      }
       if (exitCode === 0 && completedAction === "stop") {
         root.running = false
         root.playing = false
+        root.playbackExpected = false
       }
       settleTimer.restart()
     }

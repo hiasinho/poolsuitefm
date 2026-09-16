@@ -35,6 +35,7 @@ MAX_THUMBNAIL_OUTPUT_BYTES = 4 * 1024
 MAX_CACHE_BYTES = 256 * 1024
 MAX_CACHE_ENTRIES = 128
 ARTWORK_TIMEOUT = 10
+YTDLP_IMPERSONATE = "chrome"
 
 # Keep these URL policies and display limits in sync with Safety.js.
 URL_PATH = r"[A-Za-z0-9._~!$&'()*+,;=:@%/-]+"
@@ -110,13 +111,21 @@ def stop():
     sock_path.unlink(missing_ok=True)
 
 
+def preferred_ytdlp():
+    user_install = Path.home() / ".local" / "bin" / "yt-dlp"
+    return str(user_install) if os.access(user_install, os.X_OK) else "yt-dlp"
+
+
 def start(station, volume, shuffle):
     if station not in PLAYLISTS:
         raise SystemExit(f"Unknown station: {station}")
     stop()
+    ytdlp = preferred_ytdlp()
     command = [
         "mpv", "--no-video", "--really-quiet", "--force-window=no",
         f"--input-ipc-server={sock_path}", f"--volume={max(0, min(100, volume))}",
+        f"--script-opts-append=ytdl_hook-ytdl_path={ytdlp}",
+        f"--ytdl-raw-options=impersonate={YTDLP_IMPERSONATE}",
     ]
     if shuffle:
         command.append("--shuffle")
@@ -222,7 +231,8 @@ def write_art_cache(cached):
 
 def thumbnail_output(source):
     command = [
-        "yt-dlp", "--ignore-config", "--no-warnings", "--no-playlist",
+        preferred_ytdlp(), "--ignore-config", "--no-warnings", "--no-playlist",
+        "--impersonate", YTDLP_IMPERSONATE,
         "--skip-download", "--print", "%(thumbnail)s", "--", source,
     ]
     deadline = time.monotonic() + ARTWORK_TIMEOUT

@@ -12,6 +12,7 @@ Panel {
   property var hostWidget: null
   readonly property var player: bar && bar.shell ? bar.shell.serviceFor(moduleName) : null
   readonly property var barIdentity: hostWidget || root
+  readonly property color errorColor: root.bar ? root.bar.urgent : Color.urgent
 
   readonly property var stations: [
     { key: "official", name: "Official" },
@@ -178,6 +179,17 @@ Panel {
             enabled: root.player && root.player.running && !root.player.busy
             onClicked: root.player.stop()
           }
+        }
+
+        Text {
+          width: parent.width
+          visible: root.player && root.player.errorMessage !== ""
+          text: root.player ? root.player.errorMessage : ""
+          textFormat: Text.PlainText
+          color: root.errorColor
+          font.family: Style.font.family
+          font.pixelSize: Style.font.bodySmall
+          wrapMode: Text.WordWrap
         }
 
         PanelSeparator {

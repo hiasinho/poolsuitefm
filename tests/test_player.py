@@ -167,6 +167,22 @@ class PlayerTest(unittest.TestCase):
                 self.assertFalse(data["playing"])
                 self.assertEqual((data["title"], data["source"]), ("", ""))
 
+    def test_start_uses_impersonating_ytdlp(self):
+        executable = "/opt/poolsuite/bin/yt-dlp"
+        replies = [{"error": "success", "data": False}]
+        with patch.object(player, "stop"), patch.object(player, "preferred_ytdlp", return_value=executable), \
+                patch.object(player, "send", return_value=replies), \
+                patch.object(player.subprocess, "Popen") as spawn:
+            player.start("official", 70, True)
+
+        command = spawn.call_args.args[0]
+        self.assertIn("--ytdl-raw-options=impersonate=chrome", command)
+        self.assertIn("--script-opts-append=ytdl_hook-ytdl_path=" + executable, command)
+        self.assertIn("--shuffle", command)
+        self.assertEqual(command[-1], player.PLAYLISTS["official"])
+        self.assertNotIn("env", spawn.call_args.kwargs)
+        self.assertEqual(player.station_path.read_text(), "official")
+
     def test_station_file_is_bounded_and_allowlisted(self):
         self.assertEqual(player.read_station(), "official")
         for contents in (b"x" * 65, b"unknown", b"\xff", b"<b>station</b>"):
@@ -289,13 +305,17 @@ class PlayerTest(unittest.TestCase):
             self.assertEqual(command[0], "yt-dlp")
             self.assertIn("--ignore-config", command)
             self.assertIn("--skip-download", command)
+            self.assertIn("--impersonate", command)
+            self.assertEqual(command[command.index("--impersonate") + 1], "chrome")
             self.assertEqual(command[-2:], ["--", SOURCE])
             self.assertEqual(kwargs["stderr"], subprocess.DEVNULL)
             child = popen([sys.executable, "-c", code], **kwargs)
             children.append(child)
             return child
 
-        with patch.object(player.subprocess, "Popen", side_effect=spawn), patch.object(player, "ARTWORK_TIMEOUT", 0.3):
+        with patch.object(player.subprocess, "Popen", side_effect=spawn), \
+                patch.object(player, "preferred_ytdlp", return_value="yt-dlp"), \
+                patch.object(player, "ARTWORK_TIMEOUT", 0.3):
             if expected_error:
                 with self.assertRaises(expected_error):
                     player.thumbnail_output(SOURCE)
