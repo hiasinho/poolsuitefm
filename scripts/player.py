@@ -49,6 +49,8 @@ runtime.mkdir(parents=True, exist_ok=True)
 sock_path = runtime / "poolsuitefm.sock"
 station_path = runtime / "poolsuitefm.station"
 art_path = runtime / "poolsuitefm.art.json"
+log_path = runtime / "poolsuitefm.mpv.log"
+previous_log_path = runtime / "poolsuitefm.mpv.previous.log"
 
 
 def remaining_time(deadline):
@@ -112,6 +114,10 @@ def stop():
 
 
 def preferred_ytdlp():
+    wrapper = Path(__file__).with_name("widget_ytdlp.py")
+    python = Path.home() / ".local/share/uv/tools/yt-dlp/bin/python"
+    if python.is_file() and os.access(wrapper, os.X_OK):
+        return str(wrapper)
     user_install = Path.home() / ".local" / "bin" / "yt-dlp"
     return str(user_install) if os.access(user_install, os.X_OK) else "yt-dlp"
 
@@ -122,7 +128,7 @@ def start(station, volume, shuffle):
     stop()
     ytdlp = preferred_ytdlp()
     command = [
-        "mpv", "--no-video", "--really-quiet", "--force-window=no",
+        "mpv", "--no-video", "--force-window=no",
         f"--input-ipc-server={sock_path}", f"--volume={max(0, min(100, volume))}",
         f"--script-opts-append=ytdl_hook-ytdl_path={ytdlp}",
         f"--ytdl-raw-options=impersonate={YTDLP_IMPERSONATE}",
@@ -130,9 +136,17 @@ def start(station, volume, shuffle):
     if shuffle:
         command.append("--shuffle")
     command.append(PLAYLISTS[station])
-    with open(os.devnull, "rb") as stdin, open(os.devnull, "ab") as output:
+    # Keep diagnostics from the current and previous runs rather than discarding them.
+    # The runtime directory is user-private; the log itself is owner-only too.
+    try:
+        log_path.replace(previous_log_path)
+    except FileNotFoundError:
+        pass
+    with open(os.devnull, "rb") as stdin, \
+            open(log_path, "w", encoding="utf-8", opener=lambda path, flags: os.open(path, flags, 0o600)) as log:
+        os.chmod(log_path, 0o600)
         player = subprocess.Popen(
-            command, stdin=stdin, stdout=output, stderr=output,
+            command, stdin=stdin, stdout=log, stderr=log,
             start_new_session=True, close_fds=True,
         )
     try:

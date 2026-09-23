@@ -36,7 +36,8 @@ Eight professionally leisure-oriented departments are available:
 
 SoundCloud rejects plain HTTP clients with a 403 response. Install the enhanced
 `yt-dlp` build before checking in; this supplies a current browser fingerprint
-without opening a browser:
+without opening a browser. The widget fallback also requires this user-level
+`uv` tool installation (its Python environment supplies the yt-dlp library):
 
 ```bash
 uv tool install --force --with curl-cffi yt-dlp
@@ -74,7 +75,20 @@ or conclude the broadcast entirely.
 Playback runs invisibly through `mpv`. The helper communicates with it over a
 local JSON IPC socket, while `yt-dlp` resolves SoundCloud audio and retrieves
 cover art once per track. Artwork is cached so repeat visits remain pleasantly
-unhurried.
+unhurried. If normal yt-dlp extraction fails with a SoundCloud HTTP 401, the
+bundled `scripts/widget_ytdlp.py` adapter retries via SoundCloud's public widget
+API. It obtains the widget client ID from official widget JavaScript (not a
+hardcoded credential) and caches it for one hour in the runtime directory.
+The same adapter handles metadata-only artwork requests. This relies on
+SoundCloud's current, undocumented widget assets and yt-dlp's SoundCloud
+extractor internals; either may change. Without the `uv` yt-dlp Python
+installation, playback uses ordinary yt-dlp without the widget retry.
+
+For diagnostics, inspect `$XDG_RUNTIME_DIR/poolsuitefm.mpv.log` (or
+`/tmp/poolsuitefm-$(id -u)/poolsuitefm.mpv.log` when XDG_RUNTIME_DIR is unset).
+The previous session is saved as `poolsuitefm.mpv.previous.log`. The adapter
+notes 401 retries on stderr (mpv may suppress successful extractor diagnostics);
+failed extraction errors appear in the log.
 
 ## Data Boundaries
 
@@ -103,6 +117,10 @@ mpv's local socket. The plugin applies these limits before handing data to QML:
   explicit ports, fragments, whitespace, backslashes, malformed percent escapes,
   and percent-encoded ASCII controls/backslashes are not allowed in either URL
   policy. These rules apply to fresh lookups, cached values, and QML assignment.
+- **Extractor adapter:** retries only on SoundCloud 401 errors. Its widget page
+  and up to four official JS assets have HTTPS origin, byte and five-second
+  request limits; child extraction has a 60-second limit and 8 MiB stdout /
+  64 KiB stderr limits. It publishes no partial extraction output on failure.
 - **Artwork lookup:** the metadata-only `yt-dlp` invocation ignores user config,
   has a ten-second overall deadline, and reads at most 4 KiB of stdout before
   rejecting overflow. Stderr is discarded. Only a successful process with one

@@ -167,13 +167,26 @@ class PlayerTest(unittest.TestCase):
                 self.assertFalse(data["playing"])
                 self.assertEqual((data["title"], data["source"]), ("", ""))
 
+    def test_preferred_ytdlp_selects_widget_adapter_only_with_uv_python(self):
+        with patch.object(Path, "is_file", return_value=True):
+            self.assertEqual(player.preferred_ytdlp(), str(ROOT / "scripts/widget_ytdlp.py"))
+        with patch.object(Path, "is_file", return_value=False), \
+                patch.object(player.os, "access", return_value=True):
+            self.assertEqual(player.preferred_ytdlp(), str(Path.home() / ".local/bin/yt-dlp"))
+
     def test_start_uses_impersonating_ytdlp(self):
         executable = "/opt/poolsuite/bin/yt-dlp"
         replies = [{"error": "success", "data": False}]
-        with patch.object(player, "stop"), patch.object(player, "preferred_ytdlp", return_value=executable), \
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(player, "log_path", Path(directory) / "mpv.log"), \
+                patch.object(player, "previous_log_path", Path(directory) / "mpv.previous.log"), \
+                patch.object(player, "stop"), patch.object(player, "preferred_ytdlp", return_value=executable), \
                 patch.object(player, "send", return_value=replies), \
                 patch.object(player.subprocess, "Popen") as spawn:
             player.start("official", 70, True)
+            self.assertEqual(player.log_path.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(spawn.call_args.kwargs["stderr"].name, str(player.log_path))
+            self.assertIs(spawn.call_args.kwargs["stdout"], spawn.call_args.kwargs["stderr"])
 
         command = spawn.call_args.args[0]
         self.assertIn("--ytdl-raw-options=impersonate=chrome", command)
