@@ -33,7 +33,10 @@ def fetch(url, origin, limit):
 
 
 def widget_client_id():
-    cache = Path(os.environ.get("XDG_RUNTIME_DIR", f"/tmp/poolsuitefm-{os.getuid()}")) / "poolsuitefm.widget-client"
+    runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
+    if not runtime_dir:
+        raise ValueError("Poolsuite FM requires XDG_RUNTIME_DIR; refusing to use a shared temporary directory")
+    cache = Path(runtime_dir) / "poolsuitefm.widget-client"
     try:
         if time.time() - cache.stat().st_mtime < CACHE_AGE:
             with cache.open("rb") as cached:

@@ -44,8 +44,10 @@ SOURCE_URL = re.compile(r"https://(?:soundcloud\.com|api-v2\.soundcloud\.com)/" 
 ARTWORK_URL = re.compile(r"https://(?:i1|a1)\.sndcdn\.com/" + URL_PATH + r"\.(?:jpg|jpeg|png|webp)" + URL_QUERY)
 UNSAFE_ESCAPE = re.compile(r"%(?![0-9a-f]{2})|%(?:0[0-9a-f]|1[0-9a-f]|7f|5c)", re.IGNORECASE)
 
-runtime = Path(os.environ.get("XDG_RUNTIME_DIR", f"/tmp/poolsuitefm-{os.getuid()}"))
-runtime.mkdir(parents=True, exist_ok=True)
+runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
+if not runtime_dir:
+    raise SystemExit("Poolsuite FM requires XDG_RUNTIME_DIR; refusing to use a shared temporary directory")
+runtime = Path(runtime_dir)
 sock_path = runtime / "poolsuitefm.sock"
 station_path = runtime / "poolsuitefm.station"
 art_path = runtime / "poolsuitefm.art.json"

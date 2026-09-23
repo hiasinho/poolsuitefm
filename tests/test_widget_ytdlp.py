@@ -38,6 +38,13 @@ class WidgetTest(unittest.TestCase):
                 self.assertEqual(widget.main([URL]), 1)
                 run.assert_called_once()
 
+    def test_missing_runtime_directory_fails_closed(self):
+        environment = dict(os.environ)
+        environment.pop("XDG_RUNTIME_DIR", None)
+        with patch.dict(os.environ, environment, clear=True):
+            with self.assertRaisesRegex(ValueError, "requires XDG_RUNTIME_DIR"):
+                widget.widget_client_id()
+
     def test_assets_are_bounded_and_cache_is_validated(self):
         with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {"XDG_RUNTIME_DIR": directory}):
             asset = "https://widget.sndcdn.com/widget-9-abc.js"

@@ -84,9 +84,10 @@ SoundCloud's current, undocumented widget assets and yt-dlp's SoundCloud
 extractor internals; either may change. Without the `uv` yt-dlp Python
 installation, playback uses ordinary yt-dlp without the widget retry.
 
-For diagnostics, inspect `$XDG_RUNTIME_DIR/poolsuitefm.mpv.log` (or
-`/tmp/poolsuitefm-$(id -u)/poolsuitefm.mpv.log` when XDG_RUNTIME_DIR is unset).
-The previous session is saved as `poolsuitefm.mpv.previous.log`. The adapter
+Playback requires `$XDG_RUNTIME_DIR`; the helper refuses to use a predictable
+shared `/tmp` path when it is unset. For diagnostics, inspect
+`$XDG_RUNTIME_DIR/poolsuitefm.mpv.log`. The previous session is saved as
+`poolsuitefm.mpv.previous.log`. The adapter
 notes 401 retries on stderr (mpv may suppress successful extractor diagnostics);
 failed extraction errors appear in the log.
 

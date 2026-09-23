@@ -21,6 +21,16 @@ SOURCE = "https://soundcloud.com/artist/track"
 IMAGE = "https://i1.sndcdn.com/artworks-example-original.jpg"
 
 
+class RuntimeDirectoryTest(unittest.TestCase):
+    def test_missing_runtime_directory_fails_closed(self):
+        environment = dict(os.environ)
+        environment.pop("XDG_RUNTIME_DIR", None)
+        result = subprocess.run([sys.executable, str(ROOT / "scripts/player.py"), "status"],
+                                env=environment, capture_output=True, text=True, timeout=5)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("requires XDG_RUNTIME_DIR", result.stderr)
+
+
 class FakeSocket:
     def __init__(self, chunks):
         self.chunks = list(chunks)
